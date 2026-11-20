@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="BIOHAZARD: LAST STAND - a retro survival horror game.">
     <title>BIOHAZARD: LAST STAND</title>
     <link rel="stylesheet" href="Styles/style.css">
@@ -19,7 +19,7 @@
                 <button class="menu-button" data-screen="instructions">Instructions</button>
                 <button class="menu-button" data-screen="high-scores">High Scores</button>
             </nav>
-            <p class="version">BUILD 08 // FINAL POLISH</p>
+            <p class="version">BUILD 08 // MOBILE READY</p>
         </section>
 
         <section id="instructions" class="screen panel-screen" aria-labelledby="instructions-title" hidden>
@@ -30,17 +30,17 @@
                     <article>
                         <span class="instruction-number">01</span>
                         <h3>Move</h3>
-                        <p>Use <strong>WASD</strong> or the <strong>arrow keys</strong> to move through the quarantine zone.</p>
+                        <p>Use <strong>WASD / Arrows</strong> on desktop or the <strong>Touch Joystick</strong> on mobile to navigate.</p>
                     </article>
                     <article>
                         <span class="instruction-number">02</span>
                         <h3>Survive</h3>
-                        <p>Weapons will attack automatically. Keep moving and avoid the infected.</p>
+                        <p>Weapons attack automatically. Keep moving and avoid the infected.</p>
                     </article>
                     <article>
                         <span class="instruction-number">03</span>
                         <h3>Improve</h3>
-                        <p>Collect experience dropped by defeated enemies and choose upgrades when you level up.</p>
+                        <p>Collect experience dropped by defeated enemies and tap upgrades when you level up.</p>
                     </article>
                 </div>
                 <button class="menu-button back-button" data-screen="main-menu">Return to Main Menu</button>
@@ -81,11 +81,13 @@
 
         <section id="gameplay" class="screen gameplay-screen" aria-labelledby="gameplay-title" hidden>
             <header class="hud">
-                <div>
-                    <p class="hud-label">STATUS</p>
-                    <h2 id="gameplay-title">QUARANTINE ZONE</h2>
+                <div class="hud-bars">
+                    <div class="hud-title-row">
+                        <p class="hud-label">STATUS</p>
+                        <h2 id="gameplay-title">QUARANTINE ZONE</h2>
+                    </div>
                     <div class="health-status">
-                        <span>HEALTH</span>
+                        <span>HP</span>
                         <div class="health-track" aria-label="Player health">
                             <div id="health-bar" class="health-bar"></div>
                         </div>
@@ -99,27 +101,56 @@
                         <strong id="experience-value">0/40</strong>
                     </div>
                 </div>
-                <div class="hud-stat"><span>TIME</span><strong id="survival-time">00:00</strong></div>
-                <div class="hud-stat"><span>SCORE</span><strong id="score-value">000000</strong></div>
-                <div class="hud-stat"><span>KILLS</span><strong id="kills-value">000</strong></div>
-                <div class="hud-stat"><span>BOSSES</span><strong id="bosses-value">00</strong></div>
-                <div class="hud-stat"><span>LEVEL</span><strong id="level-value">01</strong></div>
-            </header>
-            <div class="canvas-frame">
-                <canvas id="game-canvas" width="960" height="540" aria-label="Gameplay area"></canvas>
-                <div class="canvas-message">
-                    <span>WASD / ARROWS TO MOVE</span>
-                    <small>PHASE 8 // FINAL POLISH BUILD</small>
+                <div class="hud-stats-group">
+                    <div class="hud-stat"><span>TIME</span><strong id="survival-time">00:00</strong></div>
+                    <div class="hud-stat"><span>SCORE</span><strong id="score-value">000000</strong></div>
+                    <div class="hud-stat"><span>KILLS</span><strong id="kills-value">000</strong></div>
+                    <div class="hud-stat"><span>BOSS</span><strong id="bosses-value">00</strong></div>
+                    <div class="hud-stat"><span>LVL</span><strong id="level-value">01</strong></div>
                 </div>
+            </header>
+
+            <div id="canvas-frame" class="canvas-frame">
+                <canvas id="game-canvas" width="960" height="540" aria-label="Gameplay area"></canvas>
+                
+                <div id="canvas-message" class="canvas-message">
+                    <span class="desktop-hint">WASD / ARROWS TO MOVE</span>
+                    <span class="mobile-hint">DRAG ANYWHERE ON LEFT TO MOVE</span>
+                    <small>PHASE 8 // MOBILE OPTIMIZED</small>
+                </div>
+
+                <!-- Virtual Joystick -->
+                <div id="joystick-zone" class="joystick-zone" aria-hidden="true">
+                    <div id="joystick-base" class="joystick-base">
+                        <div id="joystick-stick" class="joystick-stick"></div>
+                    </div>
+                </div>
+
+                <!-- Level Up Overlay -->
                 <div id="level-up-overlay" class="level-up-overlay" hidden>
                     <p class="eyebrow">SURVIVOR LEVEL INCREASED</p>
                     <h2>Choose an Upgrade</h2>
                     <div id="upgrade-options" class="upgrade-options"></div>
                 </div>
+
+                <!-- Pause Overlay -->
+                <div id="pause-overlay" class="level-up-overlay" hidden>
+                    <p class="eyebrow">SYSTEM STANDBY</p>
+                    <h2>Game Paused</h2>
+                    <div class="menu-buttons">
+                        <button id="resume-button" class="menu-button menu-button--primary">Resume</button>
+                        <button class="menu-button" data-screen="gameplay">Restart Run</button>
+                        <button class="menu-button" data-screen="main-menu">Exit to Menu</button>
+                    </div>
+                </div>
             </div>
+
             <div class="gameplay-footer">
-                <p>HANDGUN // READY</p>
-                <button class="text-button" data-screen="main-menu">Exit to Menu</button>
+                <p>HANDGUN // AUTO-FIRE</p>
+                <div class="footer-actions">
+                    <button id="pause-button" class="hud-action-button" type="button">Pause</button>
+                    <button class="hud-action-button hud-action-button--danger" data-screen="main-menu" type="button">Menu</button>
+                </div>
             </div>
         </section>
     </main>

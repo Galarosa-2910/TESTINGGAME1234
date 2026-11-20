@@ -3,8 +3,17 @@
 const screens = document.querySelectorAll(".screen");
 const navigationButtons = document.querySelectorAll("[data-screen]");
 const highScoreValue = document.querySelector("#high-score-value");
+const canvasFrame = document.querySelector("#canvas-frame");
 const canvas = document.querySelector("#game-canvas");
 const context = canvas.getContext("2d");
+const canvasMessage = document.querySelector("#canvas-message");
+
+const pauseButton = document.querySelector("#pause-button");
+const resumeButton = document.querySelector("#resume-button");
+const pauseOverlay = document.querySelector("#pause-overlay");
+
+const joystickBase = document.querySelector("#joystick-base");
+const joystickStick = document.querySelector("#joystick-stick");
 
 const keys = new Set();
 const world = {
@@ -28,8 +37,20 @@ const player = {
 };
 const camera = {
     x: 0,
-    y: 0
+    y: 0,
+    viewWidth: 960,
+    viewHeight: 540
 };
+const joystick = {
+    active: false,
+    touchId: null,
+    originX: 0,
+    originY: 0,
+    dx: 0,
+    dy: 0,
+    maxRadius: 42
+};
+
 const enemies = [];
 const projectiles = [];
 const experienceOrbs = [];
@@ -83,6 +104,7 @@ const upgrades = [
 let animationFrameId = null;
 let previousTime = 0;
 let gameIsRunning = false;
+let isPaused = false;
 let enemySpawnTimer = 0;
 let nextEnemyId = 1;
 let handgunCooldown = 0;
@@ -106,6 +128,34 @@ const allowedMovementKeys = new Set([
     "arrowright"
 ]);
 
+/* --- Responsive Canvas Sizing (Non-Distorting) --- */
+function resizeCanvas() {
+    if (!canvasFrame) {
+        return;
+    }
+    const rect = canvasFrame.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+        return;
+    }
+
+    // Ensure a balanced playable field of view across phones, tablets, and desktops
+    const minDimension = Math.min(rect.width, rect.height);
+    const targetMinWorldView = 420;
+    const scale = minDimension < targetMinWorldView ? targetMinWorldView / minDimension : 1;
+
+    camera.viewWidth = Math.round(rect.width * scale);
+    camera.viewHeight = Math.round(rect.height * scale);
+
+    canvas.width = camera.viewWidth;
+    canvas.height = camera.viewHeight;
+    context.imageSmoothingEnabled = false;
+
+    updateCamera();
+    if (!gameIsRunning) {
+        drawGame();
+    }
+}
+
 function showScreen(screenId) {
     screens.forEach((screen) => {
         const isSelected = screen.id === screenId;
@@ -118,7 +168,10 @@ function showScreen(screenId) {
     }
 
     if (screenId === "gameplay") {
-        startGame();
+        requestAnimationFrame(() => {
+            resizeCanvas();
+            startGame();
+        });
     } else {
         stopGame();
     }
@@ -174,6 +227,7 @@ function startGame() {
     nextEnemyId = 1;
     handgunCooldown = 0;
     levelUpPending = false;
+    isPaused = false;
     survivalTime = 0;
     score = 0;
     kills = 0;
@@ -181,7 +235,15 @@ function startGame() {
     lastScoredMinute = 0;
     nextBossTime = 60;
     visualTime = 0;
+
+    resetJoystick();
+    keys.clear();
     closeLevelUpOverlay();
+    pauseOverlay.hidden = true;
+    pauseButton.textContent = "Pause";
+    canvasMessage.classList.remove("is-hidden");
+
+    resizeCanvas();
     updateCamera();
     updateHealthBar();
     updateExperienceBar();
@@ -196,9 +258,38 @@ function startGame() {
 
 function stopGame() {
     gameIsRunning = false;
+    isPaused = false;
+    resetJoystick();
     if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
+    }
+}
+
+function togglePause(forcePause) {
+    if (levelUpPending || document.querySelector("#gameplay").hidden) {
+        return;
+    }
+
+    const nextPauseState = typeof forcePause === "boolean" ? forcePause : !isPaused;
+    if (nextPauseState === isPaused) {
+        return;
+    }
+
+    isPaused = nextPauseState;
+    pauseOverlay.hidden = !isPaused;
+    pauseButton.textContent = isPaused ? "Resume" : "Pause";
+
+    if (isPaused) {
+        gameIsRunning = false;
+        resetJoystick();
+        keys.clear();
+    } else {
+        gameIsRunning = true;
+        previousTime = 0;
+        if (animationFrameId === null) {
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
     }
 }
 
@@ -253,7 +344,17 @@ function updatePlayer(deltaTime) {
         verticalDirection /= diagonalLength;
     }
 
-    player.isMoving = horizontalDirection !== 0 || verticalDirection !== 0;
+    // Apply analog touch joystick vector if active and no keyboard keys override it
+    if (joystick.active && horizontalDirection === 0 && verticalDirection === 0) {
+        horizontalDirection = joystick.dx;
+        verticalDirection = joystick.dy;
+    }
+
+    player.isMoving = Math.abs(horizontalDirection) > 0.05 || Math.abs(verticalDirection) > 0.05;
+    if (player.isMoving && !canvasMessage.classList.contains("is-hidden")) {
+        canvasMessage.classList.add("is-hidden");
+    }
+
     player.x += horizontalDirection * player.speed * deltaTime;
     player.y += verticalDirection * player.speed * deltaTime;
 
@@ -265,8 +366,8 @@ function updatePlayer(deltaTime) {
 }
 
 function updateCamera() {
-    camera.x = Math.max(0, Math.min(world.width - canvas.width, player.x - canvas.width / 2));
-    camera.y = Math.max(0, Math.min(world.height - canvas.height, player.y - canvas.height / 2));
+    camera.x = Math.max(0, Math.min(world.width - camera.viewWidth, player.x - camera.viewWidth / 2));
+    camera.y = Math.max(0, Math.min(world.height - camera.viewHeight, player.y - camera.viewHeight / 2));
 }
 
 function updateSurvival(deltaTime) {
@@ -322,22 +423,22 @@ function updateEnemies(deltaTime) {
 
 function spawnEnemy(type = chooseEnemyType()) {
     const side = Math.floor(Math.random() * 4);
-    const padding = 30;
+    const padding = 36;
     let x = player.x;
     let y = player.y;
 
     if (side === 0) {
         x = camera.x - padding;
-        y = camera.y + Math.random() * canvas.height;
+        y = camera.y + Math.random() * camera.viewHeight;
     } else if (side === 1) {
-        x = camera.x + canvas.width + padding;
-        y = camera.y + Math.random() * canvas.height;
+        x = camera.x + camera.viewWidth + padding;
+        y = camera.y + Math.random() * camera.viewHeight;
     } else if (side === 2) {
-        x = camera.x + Math.random() * canvas.width;
+        x = camera.x + Math.random() * camera.viewWidth;
         y = camera.y - padding;
     } else {
-        x = camera.x + Math.random() * canvas.width;
-        y = camera.y + canvas.height + padding;
+        x = camera.x + Math.random() * camera.viewWidth;
+        y = camera.y + camera.viewHeight + padding;
     }
 
     const enemyType = enemyTypes[type];
@@ -456,7 +557,6 @@ function findNearestEnemy() {
 function fireHandgun(target) {
     const distanceX = target.x - player.x;
     const distanceY = target.y - player.y;
-    const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
 
     for (let index = 0; index < handgun.projectileCount; index += 1) {
         const spread = (index - (handgun.projectileCount - 1) / 2) * 0.12;
@@ -514,6 +614,7 @@ function openLevelUpOverlay() {
 
     levelUpPending = true;
     gameIsRunning = false;
+    resetJoystick();
     renderUpgradeChoices();
     document.querySelector("#level-up-overlay").hidden = false;
 }
@@ -529,6 +630,7 @@ function renderUpgradeChoices() {
 
     getRandomUpgrades(3).forEach((upgrade) => {
         const option = document.createElement("button");
+        option.type = "button";
         option.className = "upgrade-option";
         option.innerHTML = `<strong>${upgrade.name}</strong><span>${upgrade.description}</span>`;
         option.addEventListener("click", () => {
@@ -557,6 +659,7 @@ function updateHealthBar() {
 
 function finishGame() {
     gameIsRunning = false;
+    resetJoystick();
     const personalBest = saveHighScore();
     document.querySelector("#final-score").textContent = formatScore(score);
     document.querySelector("#final-time").textContent = formatSurvivalTime();
@@ -580,6 +683,7 @@ function updateScoreboard() {
     document.querySelector("#bosses-value").textContent = String(bossesDefeated).padStart(2, "0");
 }
 
+/* --- Rendering with Viewport Culling for Mobile FPS --- */
 function drawGame() {
     context.save();
     context.translate(-camera.x, -camera.y);
@@ -609,60 +713,84 @@ function drawImpactEffect(effect) {
 
 function drawUrbanEnvironment() {
     const { width, height } = world;
+    const minX = camera.x;
+    const maxX = camera.x + camera.viewWidth;
+    const minY = camera.y;
+    const maxY = camera.y + camera.viewHeight;
 
     context.fillStyle = "#111814";
-    context.fillRect(0, 0, width, height);
+    context.fillRect(minX, minY, camera.viewWidth, camera.viewHeight);
 
     context.fillStyle = "#1b2520";
-    context.fillRect(0, 0, width, 78);
-    context.fillRect(0, height - 78, width, 78);
-    context.fillRect(0, 0, 74, height);
-    context.fillRect(width - 74, 0, 74, height);
+    if (minY < 78) context.fillRect(minX, 0, camera.viewWidth, 78);
+    if (maxY > height - 78) context.fillRect(minX, height - 78, camera.viewWidth, 78);
+    if (minX < 74) context.fillRect(0, minY, 74, camera.viewHeight);
+    if (maxX > width - 74) context.fillRect(width - 74, minY, 74, camera.viewHeight);
 
     context.fillStyle = "#28322a";
     context.fillRect(74, 78, width - 148, height - 156);
 
+    // Draw only visible grid lines
     context.strokeStyle = "rgba(151, 164, 120, 0.15)";
     context.lineWidth = 2;
-    for (let x = 100; x < width - 74; x += 48) {
-        context.beginPath();
-        context.moveTo(x, 78);
-        context.lineTo(x, height - 78);
-        context.stroke();
+    const startGridX = Math.max(100, Math.floor((minX - 100) / 48) * 48 + 100);
+    const endGridX = Math.min(width - 74, maxX);
+    context.beginPath();
+    for (let x = startGridX; x < endGridX; x += 48) {
+        context.moveTo(x, Math.max(78, minY));
+        context.lineTo(x, Math.min(height - 78, maxY));
     }
-    for (let y = 100; y < height - 78; y += 48) {
-        context.beginPath();
-        context.moveTo(74, y);
-        context.lineTo(width - 74, y);
-        context.stroke();
+    const startGridY = Math.max(100, Math.floor((minY - 100) / 48) * 48 + 100);
+    const endGridY = Math.min(height - 78, maxY);
+    for (let y = startGridY; y < endGridY; y += 48) {
+        context.moveTo(Math.max(74, minX), y);
+        context.lineTo(Math.min(width - 74, maxX), y);
     }
+    context.stroke();
 
-    drawRoadMarkings();
+    drawRoadMarkings(minX, maxX, minY, maxY);
+
     for (let x = 16; x < width; x += 280) {
-        drawBuilding(x, 16, 42, 42);
-        drawBuilding(x, height - 58, 42, 42);
+        if (x + 42 >= minX && x <= maxX) {
+            if (minY <= 60) drawBuilding(x, 16, 42, 42);
+            if (maxY >= height - 60) drawBuilding(x, height - 58, 42, 42);
+        }
     }
     for (let y = 16; y < height; y += 280) {
-        drawBuilding(16, y, 42, 42);
-        drawBuilding(width - 58, y, 42, 42);
+        if (y + 42 >= minY && y <= maxY) {
+            if (minX <= 60) drawBuilding(16, y, 42, 42);
+            if (maxX >= width - 60) drawBuilding(width - 58, y, 42, 42);
+        }
     }
     for (let x = 108; x < width; x += 420) {
-        drawStreetLight(x, 48);
-        drawStreetLight(x, height - 76);
+        if (x + 16 >= minX && x - 16 <= maxX) {
+            if (minY <= 85) drawStreetLight(x, 48);
+            if (maxY >= height - 85) drawStreetLight(x, height - 76);
+        }
     }
     for (let y = 208; y < height - 150; y += 360) {
-        drawDebris(230, y);
-        drawDebris(width - 250, y + 120);
+        if (y + 20 >= minY && y - 20 <= maxY) {
+            if (minX <= 260 && maxX >= 220) drawDebris(230, y);
+            if (minX <= width - 230 && maxX >= width - 270) drawDebris(width - 250, y + 120);
+        }
     }
 }
 
-function drawRoadMarkings() {
+function drawRoadMarkings(minX, maxX, minY, maxY) {
     context.fillStyle = "#687254";
-    for (let x = 124; x < world.width - 124; x += 70) {
-        context.fillRect(x, world.height / 2 - 2, 34, 4);
+    if (minY <= world.height / 2 + 4 && maxY >= world.height / 2 - 4) {
+        for (let x = 124; x < world.width - 124; x += 70) {
+            if (x + 34 >= minX && x <= maxX) {
+                context.fillRect(x, world.height / 2 - 2, 34, 4);
+            }
+        }
     }
-    for (let y = 116; y < world.height - 116; y += 70) {
-        context.fillRect(world.width / 2 - 2, y, 4, 34);
+    if (minX <= world.width / 2 + 4 && maxX >= world.width / 2 - 4) {
+        for (let y = 116; y < world.height - 116; y += 70) {
+            if (y + 34 >= minY && y <= maxY) {
+                context.fillRect(world.width / 2 - 2, y, 4, 34);
+            }
+        }
     }
 }
 
@@ -761,11 +889,113 @@ function drawProjectile(projectile) {
     );
 }
 
+/* --- Multitouch Virtual Joystick --- */
+function resetJoystick() {
+    joystick.active = false;
+    joystick.touchId = null;
+    joystick.dx = 0;
+    joystick.dy = 0;
+    joystickBase.classList.remove("is-active");
+    joystickBase.style.left = "";
+    joystickBase.style.top = "";
+    joystickBase.style.bottom = "";
+    joystickBase.style.transform = "";
+    joystickStick.style.transform = "translate(0px, 0px)";
+}
+
+function updateJoystickPosition(clientX, clientY) {
+    const deltaX = clientX - joystick.originX;
+    const deltaY = clientY - joystick.originY;
+    const distance = Math.hypot(deltaX, deltaY);
+    const clampedDistance = Math.min(distance, joystick.maxRadius);
+    const angle = Math.atan2(deltaY, deltaX);
+
+    const stickX = Math.cos(angle) * clampedDistance;
+    const stickY = Math.sin(angle) * clampedDistance;
+
+    // Deadzone of 12% for steady standing
+    const normalizedMagnitude = clampedDistance / joystick.maxRadius;
+    if (normalizedMagnitude < 0.12) {
+        joystick.dx = 0;
+        joystick.dy = 0;
+    } else {
+        joystick.dx = Math.cos(angle) * normalizedMagnitude;
+        joystick.dy = Math.sin(angle) * normalizedMagnitude;
+    }
+
+    joystickStick.style.transform = `translate(${stickX}px, ${stickY}px)`;
+}
+
+canvasFrame.addEventListener("touchstart", (event) => {
+    // Allow normal button clicks inside overlays
+    if (event.target.closest("button")) {
+        return;
+    }
+    event.preventDefault();
+
+    if (!gameIsRunning || isPaused || levelUpPending || joystick.active) {
+        return;
+    }
+
+    const touch = event.changedTouches[0];
+    const frameRect = canvasFrame.getBoundingClientRect();
+
+    joystick.active = true;
+    joystick.touchId = touch.identifier;
+    joystick.originX = touch.clientX;
+    joystick.originY = touch.clientY;
+
+    // Position the floating joystick base directly under the user's thumb
+    const localX = touch.clientX - frameRect.left;
+    const localY = touch.clientY - frameRect.top;
+
+    joystickBase.style.left = `${localX}px`;
+    joystickBase.style.top = `${localY}px`;
+    joystickBase.style.bottom = "auto";
+    joystickBase.style.transform = "translate(-50%, -50%)";
+    joystickBase.classList.add("is-active");
+
+    updateJoystickPosition(touch.clientX, touch.clientY);
+}, { passive: false });
+
+canvasFrame.addEventListener("touchmove", (event) => {
+    if (!joystick.active) {
+        return;
+    }
+    event.preventDefault();
+
+    for (let i = 0; i < event.changedTouches.length; i += 1) {
+        const touch = event.changedTouches[i];
+        if (touch.identifier === joystick.touchId) {
+            updateJoystickPosition(touch.clientX, touch.clientY);
+            break;
+        }
+    }
+}, { passive: false });
+
+function handleTouchEnd(event) {
+    if (!joystick.active) {
+        return;
+    }
+    for (let i = 0; i < event.changedTouches.length; i += 1) {
+        if (event.changedTouches[i].identifier === joystick.touchId) {
+            resetJoystick();
+            break;
+        }
+    }
+}
+
+canvasFrame.addEventListener("touchend", handleTouchEnd, { passive: false });
+canvasFrame.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+
+/* --- Event Listeners --- */
 window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     if (allowedMovementKeys.has(key)) {
         event.preventDefault();
         keys.add(key);
+    } else if (key === "escape" || key === "p") {
+        togglePause();
     }
 });
 
@@ -775,19 +1005,22 @@ window.addEventListener("keyup", (event) => {
 
 window.addEventListener("blur", () => {
     keys.clear();
+    resetJoystick();
 });
 
-window.addEventListener("resize", () => {
-    if (gameIsRunning) {
-        drawGame();
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden && gameIsRunning && !isPaused) {
+        togglePause(true);
     }
 });
 
-updateCamera();
-updateHealthBar();
-updateExperienceBar();
-updateScoreboard();
-drawGame();
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", () => {
+    setTimeout(resizeCanvas, 100);
+});
+
+pauseButton.addEventListener("click", () => togglePause());
+resumeButton.addEventListener("click", () => togglePause(false));
 
 navigationButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -795,4 +1028,10 @@ navigationButtons.forEach((button) => {
     });
 });
 
+resizeCanvas();
+updateCamera();
+updateHealthBar();
+updateExperienceBar();
+updateScoreboard();
+drawGame();
 displayHighScore();

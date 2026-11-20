@@ -15,13 +15,19 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
     height: 100%;
+    width: 100%;
     min-width: 320px;
     overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
     color: var(--text);
     background: var(--black);
     font-family: "Share Tech Mono", Consolas, monospace;
@@ -30,12 +36,15 @@ body {
 button {
     color: inherit;
     font: inherit;
+    touch-action: manipulation;
 }
 
 .game-shell {
     height: 100vh;
     height: 100dvh;
+    width: 100vw;
     overflow: hidden;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     background:
         radial-gradient(circle at 50% 40%, rgba(52, 73, 52, 0.2), transparent 46%),
         linear-gradient(135deg, #0b100d 25%, #111914 25%, #111914 26%, #0b100d 26%);
@@ -43,19 +52,12 @@ button {
 }
 
 .screen {
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
     min-height: 0;
 }
 
-.screen:not(.screen--active) {
-    display: none;
-}
-
-#main-menu:not(.screen--active) {
-    display: none;
-}
-
+.screen:not(.screen--active),
+#main-menu:not(.screen--active),
 .screen[hidden] {
     display: none;
 }
@@ -77,7 +79,7 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 32px 20px;
+    padding: 24px 20px;
     text-align: center;
 }
 
@@ -89,7 +91,7 @@ button {
 }
 
 #main-menu .eyebrow {
-    margin-bottom: 22px;
+    margin-bottom: 18px;
 }
 
 h1,
@@ -102,8 +104,8 @@ h3 {
 
 h1 {
     color: var(--text);
-    font-size: clamp(4rem, 12vw, 8rem);
-    line-height: 0.72;
+    font-size: clamp(3.4rem, 12vw, 8rem);
+    line-height: 0.75;
     letter-spacing: 0.03em;
     text-shadow: 5px 5px 0 #19221a;
 }
@@ -113,10 +115,10 @@ h1 span {
 }
 
 .tagline {
-    margin: 30px 0 42px;
+    margin: 22px 0 32px;
     color: var(--muted);
     font-size: 0.85rem;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.2em;
 }
 
 .menu-buttons {
@@ -126,20 +128,27 @@ h1 span {
 }
 
 .menu-button {
+    min-height: 48px;
     border: 1px solid var(--line);
     padding: 12px 18px;
-    background: rgba(22, 32, 25, 0.8);
+    background: rgba(22, 32, 25, 0.88);
     cursor: pointer;
     text-transform: uppercase;
     transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
 }
 
 .menu-button:hover,
-.menu-button:focus-visible {
+.menu-button:focus-visible,
+.menu-button:active {
     border-color: var(--bright-accent);
-    background: rgba(105, 35, 29, 0.55);
+    background: rgba(105, 35, 29, 0.65);
     outline: none;
-    transform: translateX(4px);
+}
+
+@media (hover: hover) {
+    .menu-button:hover {
+        transform: translateX(4px);
+    }
 }
 
 .menu-button--primary {
@@ -150,43 +159,44 @@ h1 span {
 
 .version {
     position: absolute;
-    bottom: 24px;
+    bottom: 16px;
     color: #596552;
     font-size: 0.7rem;
 }
 
 .panel-screen {
     display: grid;
-    overflow: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
     place-items: center;
-    padding: 24px;
+    padding: 16px;
 }
 
 .panel {
     width: min(100%, 760px);
     border: 1px solid var(--line);
-    padding: clamp(28px, 6vw, 62px);
+    padding: clamp(20px, 5vw, 52px);
     background: var(--panel);
     box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.25);
 }
 
 .panel h2 {
-    margin: 8px 0 36px;
+    margin: 8px 0 24px;
     color: var(--bright-accent);
-    font-size: clamp(3rem, 7vw, 5rem);
-    line-height: 0.8;
+    font-size: clamp(2.6rem, 7vw, 4.8rem);
+    line-height: 0.85;
 }
 
 .instruction-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    margin-bottom: 38px;
+    gap: 20px;
+    margin-bottom: 28px;
 }
 
 .instruction-grid article {
     border-top: 1px solid var(--line);
-    padding-top: 14px;
+    padding-top: 12px;
 }
 
 .instruction-number {
@@ -195,16 +205,16 @@ h1 span {
 }
 
 .instruction-grid h3 {
-    margin: 10px 0;
+    margin: 8px 0;
     color: var(--muted);
-    font-size: 2rem;
+    font-size: 1.8rem;
 }
 
 .instruction-grid p,
 .panel-note {
     color: #aeb39b;
     font-size: 0.8rem;
-    line-height: 1.7;
+    line-height: 1.6;
 }
 
 .back-button {
@@ -213,8 +223,8 @@ h1 span {
 
 .score-display {
     border: 1px solid var(--line);
-    margin-bottom: 22px;
-    padding: 24px;
+    margin-bottom: 18px;
+    padding: 20px;
     text-align: center;
 }
 
@@ -227,18 +237,14 @@ h1 span {
 
 .score-display strong {
     display: block;
-    margin-top: 8px;
+    margin-top: 6px;
     color: var(--bright-accent);
-    font: 4rem "VT323", monospace;
+    font: 3.6rem "VT323", monospace;
 }
 
 .panel-note {
-    margin-bottom: 34px;
+    margin-bottom: 24px;
     text-align: center;
-}
-
-.game-over-panel h2 {
-    margin-bottom: 28px;
 }
 
 .final-stats {
@@ -246,14 +252,14 @@ h1 span {
     grid-template-columns: repeat(2, 1fr);
     gap: 1px;
     border: 1px solid var(--line);
-    margin-bottom: 30px;
+    margin-bottom: 24px;
     background: var(--line);
 }
 
 .final-stats div {
     display: grid;
-    gap: 5px;
-    padding: 14px;
+    gap: 4px;
+    padding: 12px;
     background: var(--panel);
 }
 
@@ -264,54 +270,68 @@ h1 span {
 
 .final-stats strong {
     color: var(--text);
-    font: 1.8rem "VT323", monospace;
+    font: 1.7rem "VT323", monospace;
 }
 
 .game-over-buttons {
     width: 100%;
 }
 
+/* Gameplay Layout */
 .gameplay-screen {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
     overflow: hidden;
-    padding: 18px;
-}
-
-.hud,
-.gameplay-footer {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    flex: 0 0 auto;
+    padding: 12px 16px;
 }
 
 .hud {
-    flex-wrap: wrap;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 16px;
+    flex: 0 0 auto;
     border-bottom: 1px solid var(--line);
-    padding: 4px 0 16px;
+    padding-bottom: 10px;
+}
+
+.hud-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hud-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
 }
 
 .hud h2 {
     color: var(--bright-accent);
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+    line-height: 1;
 }
 
-.health-status {
+.health-status,
+.experience-status {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
     color: var(--muted);
     font-size: 0.65rem;
 }
 
-.health-track {
-    width: 120px;
-    height: 7px;
+.health-status span,
+.experience-status span {
+    width: 18px;
+}
+
+.health-track,
+.experience-track {
+    width: 110px;
+    height: 8px;
     border: 1px solid var(--line);
     background: #080b0a;
 }
@@ -323,27 +343,6 @@ h1 span {
     transition: width 150ms ease;
 }
 
-.health-status strong {
-    color: var(--text);
-    font-weight: 400;
-}
-
-.experience-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 5px;
-    color: var(--muted);
-    font-size: 0.65rem;
-}
-
-.experience-track {
-    width: 120px;
-    height: 7px;
-    border: 1px solid var(--line);
-    background: #080b0a;
-}
-
 .experience-bar {
     width: 0;
     height: 100%;
@@ -351,24 +350,32 @@ h1 span {
     transition: width 150ms ease;
 }
 
+.health-status strong,
 .experience-status strong {
     color: var(--text);
     font-weight: 400;
 }
 
+.hud-stats-group {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
 .hud-stat {
-    min-width: 90px;
+    min-width: 64px;
 }
 
 .hud-stat span {
     display: block;
     color: var(--muted);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
 }
 
 .hud-stat strong {
     color: var(--text);
-    font: 1.8rem "VT323", monospace;
+    font: 1.65rem "VT323", monospace;
+    line-height: 1;
 }
 
 .canvas-frame {
@@ -376,10 +383,11 @@ h1 span {
     display: grid;
     flex: 1 1 0;
     min-height: 0;
-    margin: 18px 0;
+    margin: 10px 0;
     border: 1px solid var(--line);
     background: var(--deep-green);
     overflow: hidden;
+    touch-action: none;
 }
 
 #game-canvas {
@@ -387,6 +395,7 @@ h1 span {
     width: 100%;
     height: 100%;
     image-rendering: pixelated;
+    touch-action: none;
 }
 
 .canvas-message {
@@ -394,26 +403,99 @@ h1 span {
     inset: 0;
     display: grid;
     place-content: center;
-    gap: 8px;
+    gap: 6px;
     color: var(--muted);
     text-align: center;
     pointer-events: none;
+    transition: opacity 400ms ease;
+}
+
+.canvas-message.is-hidden {
+    opacity: 0;
 }
 
 .canvas-message small {
     color: #67745e;
 }
 
+.mobile-hint {
+    display: none;
+}
+
+@media (pointer: coarse) {
+    .desktop-hint {
+        display: none;
+    }
+    .mobile-hint {
+        display: inline;
+    }
+}
+
+/* Virtual Joystick */
+.joystick-zone {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.joystick-base {
+    position: absolute;
+    left: 24px;
+    bottom: 24px;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    border: 2px solid rgba(154, 168, 120, 0.35);
+    background: rgba(15, 23, 19, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-50%, -50%);
+    transition: opacity 150ms ease;
+}
+
+@media (pointer: coarse) {
+    .joystick-base {
+        display: flex;
+        left: 76px;
+        bottom: 16px;
+        transform: none;
+        opacity: 0.45;
+    }
+}
+
+.joystick-base.is-active {
+    display: flex;
+    opacity: 0.9;
+    border-color: var(--bright-accent);
+    background: rgba(22, 32, 25, 0.7);
+}
+
+.joystick-stick {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--text);
+    background: rgba(200, 61, 50, 0.75);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    will-change: transform;
+}
+
+/* Overlays (Level Up & Pause) */
 .level-up-overlay {
     position: absolute;
     inset: 0;
+    z-index: 20;
     display: grid;
     align-content: center;
     justify-items: center;
-    gap: 18px;
-    padding: 24px;
-    background: rgba(8, 11, 10, 0.9);
+    gap: 14px;
+    padding: 16px;
+    background: rgba(8, 11, 10, 0.92);
     text-align: center;
+    overflow-y: auto;
+    touch-action: pan-y;
 }
 
 .level-up-overlay[hidden] {
@@ -422,64 +504,85 @@ h1 span {
 
 .level-up-overlay h2 {
     color: var(--bright-accent);
-    font: 2.8rem "VT323", monospace;
+    font: 2.4rem "VT323", monospace;
+    line-height: 0.9;
     text-transform: uppercase;
 }
 
 .upgrade-options {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    gap: 12px;
     width: min(100%, 720px);
 }
 
 .upgrade-option {
     display: grid;
-    gap: 12px;
-    min-height: 120px;
+    align-content: center;
+    gap: 8px;
+    min-height: 110px;
     border: 1px solid var(--line);
-    padding: 16px;
+    padding: 14px;
     background: rgba(22, 32, 25, 0.95);
     cursor: pointer;
     text-align: left;
 }
 
 .upgrade-option:hover,
-.upgrade-option:focus-visible {
+.upgrade-option:focus-visible,
+.upgrade-option:active {
     border-color: var(--bright-accent);
-    background: rgba(105, 35, 29, 0.55);
+    background: rgba(105, 35, 29, 0.65);
     outline: none;
 }
 
 .upgrade-option strong {
     color: var(--text);
-    font: 1.65rem "VT323", monospace;
+    font: 1.55rem "VT323", monospace;
+    line-height: 1;
     text-transform: uppercase;
 }
 
 .upgrade-option span {
     color: #aeb39b;
     font-size: 0.72rem;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
+/* Footer & Accessible Action Buttons */
 .gameplay-footer {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    flex: 0 0 auto;
     color: var(--muted);
     font-size: 0.75rem;
 }
 
-.text-button {
-    border: 0;
-    background: transparent;
-    color: var(--muted);
-    cursor: pointer;
-    text-decoration: underline;
+.footer-actions {
+    display: flex;
+    gap: 10px;
 }
 
-.text-button:hover,
-.text-button:focus-visible {
-    color: var(--bright-accent);
+.hud-action-button {
+    min-height: 40px;
+    min-width: 76px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    background: rgba(22, 32, 25, 0.9);
+    color: var(--text);
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.hud-action-button:hover,
+.hud-action-button:active {
+    border-color: var(--bright-accent);
+    background: rgba(105, 35, 29, 0.6);
+}
+
+.hud-action-button--danger {
+    border-color: rgba(200, 61, 50, 0.6);
 }
 
 @keyframes fade-in {
@@ -487,18 +590,60 @@ h1 span {
     to { opacity: 1; }
 }
 
-@media (max-width: 600px) {
+/* Portrait Mobile Adjustments */
+@media (max-width: 720px) {
     .instruction-grid {
         grid-template-columns: 1fr;
-        gap: 18px;
+        gap: 14px;
+    }
+
+    .gameplay-screen {
+        padding: 8px 10px;
+    }
+
+    .hud {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+
+    .hud-bars {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px 12px;
+    }
+
+    .hud-title-row {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .hud-title-row .hud-label {
+        display: none;
+    }
+
+    .health-track,
+    .experience-track {
+        width: 82px;
+    }
+
+    .hud-stats-group {
+        justify-content: space-between;
+        gap: 6px;
+        border-top: 1px solid rgba(78, 94, 72, 0.4);
+        padding-top: 6px;
     }
 
     .hud-stat {
-        min-width: 65px;
+        min-width: 0;
+        text-align: center;
     }
 
-    .hud h2 {
-        width: 100%;
+    .hud-stat strong {
+        font-size: 1.4rem;
     }
 
     .final-stats {
@@ -507,25 +652,61 @@ h1 span {
 
     .upgrade-options {
         grid-template-columns: 1fr;
-        width: min(100%, 280px);
+        width: min(100%, 340px);
+        gap: 10px;
     }
 
     .upgrade-option {
-        min-height: auto;
+        min-height: 68px;
+        padding: 12px 14px;
     }
 }
 
-@media (max-height: 700px) and (min-width: 601px) {
+/* Landscape Mobile Adjustments (Short Height) */
+@media (max-height: 520px) {
     .gameplay-screen {
-        padding: 10px;
+        padding: 6px 10px;
     }
 
     .hud {
-        padding-bottom: 8px;
+        padding-bottom: 4px;
+        gap: 8px;
+    }
+
+    .hud-title-row {
+        display: none;
+    }
+
+    .hud-bars {
+        flex-direction: row;
+        gap: 12px;
+    }
+
+    .health-track,
+    .experience-track {
+        width: 75px;
+    }
+
+    .hud-stat strong {
+        font-size: 1.35rem;
     }
 
     .canvas-frame {
-        margin: 10px 0;
+        margin: 6px 0;
+    }
+
+    .hud-action-button {
+        min-height: 34px;
+        padding: 4px 12px;
+    }
+
+    .upgrade-options {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .upgrade-option {
+        min-height: 85px;
+        padding: 10px;
     }
 }
 
