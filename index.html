@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BIOHAZARD: LAST STAND - a retro survival horror game.">
+    <title>BIOHAZARD: LAST STAND</title>
+    <link rel="stylesheet" href="Styles/style.css">
+</head>
+<body>
+    <main class="game-shell">
+        <section id="main-menu" class="screen screen--active" aria-labelledby="game-title">
+            <div class="scanlines" aria-hidden="true"></div>
+            <p class="eyebrow">QUARANTINE ZONE // SECTOR 07</p>
+            <h1 id="game-title">BIOHAZARD:<br><span>LAST STAND</span></h1>
+            <p class="tagline">THE CITY IS LOST. YOU ARE NOT.</p>
+            <nav class="menu-buttons" aria-label="Main menu">
+                <button class="menu-button menu-button--primary" data-screen="gameplay">Start Game</button>
+                <button class="menu-button" data-screen="instructions">Instructions</button>
+                <button class="menu-button" data-screen="high-scores">High Scores</button>
+            </nav>
+            <p class="version">BUILD 08 // FINAL POLISH</p>
+        </section>
+
+        <section id="instructions" class="screen panel-screen" aria-labelledby="instructions-title" hidden>
+            <div class="panel">
+                <p class="eyebrow">FIELD MANUAL // 01</p>
+                <h2 id="instructions-title">Survival Protocol</h2>
+                <div class="instruction-grid">
+                    <article>
+                        <span class="instruction-number">01</span>
+                        <h3>Move</h3>
+                        <p>Use <strong>WASD</strong> or the <strong>arrow keys</strong> to move through the quarantine zone.</p>
+                    </article>
+                    <article>
+                        <span class="instruction-number">02</span>
+                        <h3>Survive</h3>
+                        <p>Weapons will attack automatically. Keep moving and avoid the infected.</p>
+                    </article>
+                    <article>
+                        <span class="instruction-number">03</span>
+                        <h3>Improve</h3>
+                        <p>Collect experience dropped by defeated enemies and choose upgrades when you level up.</p>
+                    </article>
+                </div>
+                <button class="menu-button back-button" data-screen="main-menu">Return to Main Menu</button>
+            </div>
+        </section>
+
+        <section id="high-scores" class="screen panel-screen" aria-labelledby="high-scores-title" hidden>
+            <div class="panel">
+                <p class="eyebrow">ARCHIVES // PERSONAL RECORD</p>
+                <h2 id="high-scores-title">High Scores</h2>
+                <div class="score-display">
+                    <span>BEST SCORE</span>
+                    <strong id="high-score-value">000000</strong>
+                </div>
+                <p class="panel-note">Your best run will be stored here after the first completed game.</p>
+                <button class="menu-button back-button" data-screen="main-menu">Return to Main Menu</button>
+            </div>
+        </section>
+
+        <section id="game-over" class="screen panel-screen" aria-labelledby="game-over-title" hidden>
+            <div class="panel game-over-panel">
+                <p class="eyebrow">SIGNAL LOST // RUN TERMINATED</p>
+                <h2 id="game-over-title">You Were Overrun</h2>
+                <div class="final-stats">
+                    <div><span>FINAL SCORE</span><strong id="final-score">000000</strong></div>
+                    <div><span>SURVIVAL TIME</span><strong id="final-time">00:00</strong></div>
+                    <div><span>INFECTED KILLED</span><strong id="final-kills">000</strong></div>
+                    <div><span>LEVEL REACHED</span><strong id="final-level">01</strong></div>
+                    <div><span>BOSSES DEFEATED</span><strong id="final-bosses">00</strong></div>
+                    <div><span>PERSONAL BEST</span><strong id="personal-best-value">000000</strong></div>
+                </div>
+                <div class="menu-buttons game-over-buttons">
+                    <button class="menu-button menu-button--primary" data-screen="gameplay">Restart Game</button>
+                    <button class="menu-button" data-screen="main-menu">Main Menu</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="gameplay" class="screen gameplay-screen" aria-labelledby="gameplay-title" hidden>
+            <header class="hud">
+                <div>
+                    <p class="hud-label">STATUS</p>
+                    <h2 id="gameplay-title">QUARANTINE ZONE</h2>
+                    <div class="health-status">
+                        <span>HEALTH</span>
+                        <div class="health-track" aria-label="Player health">
+                            <div id="health-bar" class="health-bar"></div>
+                        </div>
+                        <strong id="health-value">100/100</strong>
+                    </div>
+                    <div class="experience-status">
+                        <span>XP</span>
+                        <div class="experience-track" aria-label="Experience progress">
+                            <div id="experience-bar" class="experience-bar"></div>
+                        </div>
+                        <strong id="experience-value">0/40</strong>
+                    </div>
+                </div>
+                <div class="hud-stat"><span>TIME</span><strong id="survival-time">00:00</strong></div>
+                <div class="hud-stat"><span>SCORE</span><strong id="score-value">000000</strong></div>
+                <div class="hud-stat"><span>KILLS</span><strong id="kills-value">000</strong></div>
+                <div class="hud-stat"><span>BOSSES</span><strong id="bosses-value">00</strong></div>
+                <div class="hud-stat"><span>LEVEL</span><strong id="level-value">01</strong></div>
+            </header>
+            <div class="canvas-frame">
+                <canvas id="game-canvas" width="960" height="540" aria-label="Gameplay area"></canvas>
+                <div class="canvas-message">
+                    <span>WASD / ARROWS TO MOVE</span>
+                    <small>PHASE 8 // FINAL POLISH BUILD</small>
+                </div>
+                <div id="level-up-overlay" class="level-up-overlay" hidden>
+                    <p class="eyebrow">SURVIVOR LEVEL INCREASED</p>
+                    <h2>Choose an Upgrade</h2>
+                    <div id="upgrade-options" class="upgrade-options"></div>
+                </div>
+            </div>
+            <div class="gameplay-footer">
+                <p>HANDGUN // READY</p>
+                <button class="text-button" data-screen="main-menu">Exit to Menu</button>
+            </div>
+        </section>
+    </main>
+    <script src="Scripts/script.js"></script>
+</body>
+</html>
